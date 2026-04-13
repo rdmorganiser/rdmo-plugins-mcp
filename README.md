@@ -11,16 +11,23 @@ rdmo-plugins-mcp/
 ├── pyproject.toml
 └── rdmo_mcp/
     ├── __init__.py
+    ├── adapter.py
+    ├── apps.py
     ├── server.py
-    └── mcp/
-        ├── __init__.py
-        └── rdmo_client.py
+    ├── services/
+    │   ├── django.py
+    │   ├── projects.py
+    │   ├── users.py
+    │   └── values.py
+    └── tools/
+        ├── projects.py
+        └── values.py
 ```
 
 ## What Is Scaffolded
 
 - A real MCP stdio server entrypoint: `rdmo-mcp-server`
-- A Django ORM client for three prototype operations
+- Domain-oriented services aligned with RDMO apps (`projects`, `questions`/values, users)
 - MCP tools for:
   - `create_project`
   - `add_project_member`
