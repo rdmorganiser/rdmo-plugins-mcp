@@ -25,6 +25,8 @@ rdmo-plugins-mcp/
   - `create_project`
   - `add_project_member`
   - `update_answer`
+- Reusable chatbot adapters in `rdmo_mcp.adapter` that connect an LLM to the
+  MCP server
 
 ## Install In `rdmo-app`
 
@@ -47,6 +49,23 @@ MCP_TRANSPORT = "sse"          # or "streamable-http" / "stdio"
 MCP_HOST = "127.0.0.1"
 MCP_PORT = 8090
 MCP_DEFAULT_USERNAME = "<your-rdmo-username>"
+
+CHATBOT_MCP_SERVER_TRANSPORT = "sse"
+CHATBOT_MCP_SERVER_URL = "http://127.0.0.1:8090/sse"
+CHATBOT_MCP_MAX_STEPS = 8
+```
+
+To let the chatbot LLM actually call the MCP tools, point `CHATBOT_ADAPTER` to
+one of the MCP-aware adapters from this plugin:
+
+```python
+CHATBOT_ADAPTER = "rdmo_mcp.adapter.OpenAIMCPLangChainAdapter"
+```
+
+or
+
+```python
+CHATBOT_ADAPTER = "rdmo_mcp.adapter.OllamaMCPLangChainAdapter"
 ```
 
 ## Run Locally
