@@ -51,7 +51,7 @@ class MCPLangChainAdapter(LangChainAdapter):
                 message.content,
             )
             chain = self.prompt | self.llm.bind_tools(tools, tool_choice=tool_choice)
-            response = await self._run_agent_loop(chain, session, inputs)
+            response = await self._run_agent_loop(chain, session, inputs, user.identifier)
 
         response_message = await cl.Message(content=response.content).send()
         response_message.actions = [
@@ -72,7 +72,7 @@ class MCPLangChainAdapter(LangChainAdapter):
 
         return response_message
 
-    async def _run_agent_loop(self, chain, session, inputs):
+    async def _run_agent_loop(self, chain, session, inputs, user_identifier):
         max_steps = getattr(config, "MCP_MAX_STEPS", 8)
         response = await chain.ainvoke(inputs)
         logger.info(
@@ -89,16 +89,20 @@ class MCPLangChainAdapter(LangChainAdapter):
 
             tool_messages = []
             for tool_call in response.tool_calls:
+                tool_args = {
+                    **tool_call.get("args", {}),
+                    "username": tool_call.get("args", {}).get("username") or user_identifier,
+                }
                 logger.info(
                     "MCP adapter executing tool call: step=%s name=%s args=%s id=%s",
                     step,
                     tool_call["name"],
-                    tool_call.get("args", {}),
+                    tool_args,
                     tool_call["id"],
                 )
                 result = await session.call_tool(
                     tool_call["name"],
-                    arguments=tool_call.get("args", {}),
+                    arguments=tool_args,
                 )
                 logger.info(
                     "MCP adapter tool result: step=%s name=%s is_error=%s structured=%s content=%s",
