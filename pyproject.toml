@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rdmo-plugins-mcp"
+version = "0.1.0"
+description = "Sprint-friendly MCP server scaffold for RDMO"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "RDMO. Research Data Management Organiser e.V." },
+]
+requires-python = ">=3.10"
+dependencies = [
+  "mcp>=1.0.0",
+  "rdmo-plugins-chatbot>=0.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "build",
+  "pre-commit",
+  "ruff",
+]
+
+[tool.setuptools.packages.find]
+include = ["rdmo_mcp*"]
+
+[project.scripts]
+rdmo-mcp-server = "rdmo_mcp.server:main"
