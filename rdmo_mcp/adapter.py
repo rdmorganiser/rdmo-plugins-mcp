@@ -1,4 +1,5 @@
 import json
+import logging
 
 import chainlit as cl
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
@@ -7,6 +8,9 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 from rdmo_chatbot.chatbot.adapter import LangChainAdapter, config, messages_to_dicts, store
+
+
+logger = logging.getLogger(__name__)
 
 
 class MCPLangChainAdapter(LangChainAdapter):
@@ -38,6 +42,14 @@ class MCPLangChainAdapter(LangChainAdapter):
         async with self._mcp_session() as session:
             tools = await self._get_bound_tools(session)
             tool_choice = "any" if self._should_force_tool_use(message.content, tools) else "auto"
+            logger.info(
+                "MCP adapter preparing request: tool_choice=%s tools=%s user=%s project_id=%s message=%r",
+                tool_choice,
+                [tool["function"]["name"] for tool in tools],
+                user.identifier,
+                project_id,
+                message.content,
+            )
             chain = self.prompt | self.llm.bind_tools(tools, tool_choice=tool_choice)
             response = await self._run_agent_loop(chain, session, inputs)
 
@@ -63,16 +75,38 @@ class MCPLangChainAdapter(LangChainAdapter):
     async def _run_agent_loop(self, chain, session, inputs):
         max_steps = getattr(config, "MCP_MAX_STEPS", 8)
         response = await chain.ainvoke(inputs)
+        logger.info(
+            "MCP adapter initial model response: content=%r tool_calls=%s invalid_tool_calls=%s",
+            response.content,
+            response.tool_calls,
+            getattr(response, "invalid_tool_calls", None),
+        )
 
-        for _ in range(max_steps):
+        for step in range(max_steps):
             if not response.tool_calls:
+                logger.info("MCP adapter finished without tool call at step=%s", step)
                 return response
 
             tool_messages = []
             for tool_call in response.tool_calls:
+                logger.info(
+                    "MCP adapter executing tool call: step=%s name=%s args=%s id=%s",
+                    step,
+                    tool_call["name"],
+                    tool_call.get("args", {}),
+                    tool_call["id"],
+                )
                 result = await session.call_tool(
                     tool_call["name"],
                     arguments=tool_call.get("args", {}),
+                )
+                logger.info(
+                    "MCP adapter tool result: step=%s name=%s is_error=%s structured=%s content=%s",
+                    step,
+                    tool_call["name"],
+                    result.isError,
+                    result.structuredContent,
+                    result.content,
                 )
                 tool_messages.append(
                     ToolMessage(
@@ -87,11 +121,23 @@ class MCPLangChainAdapter(LangChainAdapter):
                 "history": [*inputs["history"], response, *tool_messages],
             }
             response = await chain.ainvoke(inputs)
+            logger.info(
+                "MCP adapter follow-up model response: step=%s content=%r tool_calls=%s invalid_tool_calls=%s",
+                step,
+                response.content,
+                response.tool_calls,
+                getattr(response, "invalid_tool_calls", None),
+            )
 
+        logger.warning("MCP adapter reached max_steps=%s without terminal response", max_steps)
         return response
 
     async def _get_bound_tools(self, session):
         tool_result = await session.list_tools()
+        logger.info(
+            "MCP adapter discovered MCP tools: %s",
+            [tool.name for tool in tool_result.tools],
+        )
         return [
             {
                 "type": "function",
@@ -169,11 +215,13 @@ class _MCPSSESession:
         self._session = None
 
     async def __aenter__(self):
+        logger.info("Opening MCP SSE session to %s", self.url)
         self._stream_context = sse_client(self.url)
         read_stream, write_stream = await self._stream_context.__aenter__()
         self._session = ClientSession(read_stream, write_stream)
         await self._session.__aenter__()
         await self._session.initialize()
+        logger.info("MCP SSE session initialized for %s", self.url)
         return self._session
 
     async def __aexit__(self, exc_type, exc, tb):
@@ -190,11 +238,13 @@ class _MCPStreamableHTTPSession:
         self._session = None
 
     async def __aenter__(self):
+        logger.info("Opening MCP streamable-http session to %s", self.url)
         self._stream_context = streamablehttp_client(self.url)
         read_stream, write_stream, _ = await self._stream_context.__aenter__()
         self._session = ClientSession(read_stream, write_stream)
         await self._session.__aenter__()
         await self._session.initialize()
+        logger.info("MCP streamable-http session initialized for %s", self.url)
         return self._session
 
     async def __aexit__(self, exc_type, exc, tb):
