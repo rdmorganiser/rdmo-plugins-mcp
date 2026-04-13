@@ -49,6 +49,13 @@ Add the plugin to `INSTALLED_APPS` in `rdmo-app/config/settings/local.py`:
 INSTALLED_APPS = ["rdmo_mcp", *INSTALLED_APPS]
 ```
 
+If you also use `rdmo-plugins-chatbot`, the MCP plugin is intended to run
+alongside a chatbot Chainlit workdir:
+
+```python
+INSTALLED_APPS = ["rdmo_mcp", "rdmo_chatbot.plugin", *INSTALLED_APPS]
+```
+
 Optional Django settings for local development:
 
 ```python
@@ -74,6 +81,36 @@ or
 ```python
 CHATBOT_ADAPTER = "rdmo_mcp.adapter.OllamaMCPLangChainAdapter"
 ```
+
+## Create A Chainlit Workdir In A New `rdmo-app`
+
+If your `rdmo-app` does not yet have a chatbot Chainlit workdir, create one
+from the chatbot plugin defaults. Run this from the `rdmo-app` checkout and the
+same virtual environment:
+
+```bash
+python manage.py make_chatbot_theme --path /absolute/path/to/rdmo-app/chatbot_chainlit
+```
+
+This copies the files expected by `rdmo-plugins-chatbot`:
+
+- `.chainlit/config.toml`
+- `.chainlit/translations/`
+- `chainlit.md`
+- `chainlit_en-US.md`
+- `chainlit_de-DE.md`
+- `public/`
+
+Then point the chatbot settings to that workdir:
+
+```python
+CHATBOT_PATH = "chatbot_chainlit"
+```
+
+If you already have a custom `CHATBOT_PATH`, you can run the same command with
+that target path. It will skip files that already exist and copy any missing
+defaults, which is useful if your workdir is missing `.chainlit/config.toml` or
+`public/`.
 
 ## Run Locally
 
@@ -101,6 +138,9 @@ enabled = true
 enabled = true
 allowed_executables = ["rdmo-mcp-server"]
 ```
+
+If you created the workdir with `make_chatbot_theme`, edit the copied
+`chatbot_chainlit/.chainlit/config.toml` and add the MCP settings there.
 
 Then open `http://localhost:8080`, open the MCP Servers UI, and add either:
 

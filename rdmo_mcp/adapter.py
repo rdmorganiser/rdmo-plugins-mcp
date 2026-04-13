@@ -148,7 +148,7 @@ class MCPLangChainAdapter(LangChainAdapter):
                 "function": {
                     "name": tool.name,
                     "description": tool.description or "",
-                    "parameters": tool.inputSchema,
+                    "parameters": self._tool_parameters(tool.inputSchema),
                 },
             }
             for tool in tool_result.tools
@@ -184,6 +184,7 @@ class MCPLangChainAdapter(LangChainAdapter):
             "You can call MCP tools to perform actions in RDMO. "
             "When the user asks you to create, add, update, change, or modify data in RDMO, "
             "prefer using the available tools instead of saying that you cannot act. "
+            "The authenticated RDMO user is injected by the system, so do not ask for or invent usernames. "
             "Only answer without tools if the user is clearly asking for explanation, planning, or advice. "
             "If required tool parameters are missing, ask a short follow-up question."
         )
@@ -210,6 +211,17 @@ class MCPLangChainAdapter(LangChainAdapter):
             return True
 
         return any(tool["function"]["name"].lower() in lowered for tool in tools)
+
+    def _tool_parameters(self, schema):
+        copied = json.loads(json.dumps(schema))
+        properties = copied.get("properties", {})
+        properties.pop("username", None)
+
+        required = copied.get("required")
+        if isinstance(required, list):
+            copied["required"] = [item for item in required if item != "username"]
+
+        return copied
 
 
 class _MCPSSESession:
