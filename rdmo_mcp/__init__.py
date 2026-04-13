@@ -1,4 +1,4 @@
-"""RDMO MCP plugin package."""
+"""RDMO MCP server package."""
 
 __all__ = ["__version__"]
 

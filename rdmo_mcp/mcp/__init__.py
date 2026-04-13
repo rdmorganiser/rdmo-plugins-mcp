@@ -1,1 +1,1 @@
-"""MCP helpers for the RDMO plugin."""
+"""Django-backed helpers for the RDMO MCP server."""

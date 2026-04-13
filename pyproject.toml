@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "rdmo-plugins-mcp"
 version = "0.1.0"
-description = "Sprint-friendly MCP plugin scaffold for RDMO"
+description = "Sprint-friendly MCP server scaffold for RDMO"
 readme = "README.md"
 license = { text = "Apache-2.0" }
 authors = [
@@ -13,8 +13,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-  "chainlit>=2.8.2",
-  "rdmo-plugins-chatbot>=0.1.0",
+  "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -26,3 +25,6 @@ dev = [
 
 [tool.setuptools.packages.find]
 include = ["rdmo_mcp*"]
+
+[project.scripts]
+rdmo-mcp-server = "rdmo_mcp.server:main"

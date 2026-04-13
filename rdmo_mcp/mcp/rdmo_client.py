@@ -1,13 +1,24 @@
+import os
+
+import django
+from django.apps import apps
 from django.contrib.auth import get_user_model
 
 
-User = get_user_model()
+def _setup_django():
+    if apps.ready:
+        return
+    if not os.getenv("DJANGO_SETTINGS_MODULE"):
+        raise RuntimeError("DJANGO_SETTINGS_MODULE is not set.")
+    django.setup()
 
 
 class RDMOClient:
-    """Thin ORM wrapper used by MCP tools during the sprint."""
+    """Thin Django ORM wrapper used by the MCP server."""
 
     def __init__(self, user_identifier):
+        _setup_django()
+        self.user_model = get_user_model()
         self.user = self._resolve_user(user_identifier)
 
     def create_project(self, name, catalog_slug, description=""):
@@ -63,10 +74,10 @@ class RDMOClient:
         lookup_fields = ("pk", "id", "username", "email")
         for field in lookup_fields:
             try:
-                return User.objects.get(**{field: identifier})
-            except (User.DoesNotExist, ValueError, TypeError):
+                return self.user_model.objects.get(**{field: identifier})
+            except (self.user_model.DoesNotExist, ValueError, TypeError):
                 continue
-        raise User.DoesNotExist(f"Unable to resolve user {identifier!r}")
+        raise self.user_model.DoesNotExist(f"Unable to resolve user {identifier!r}")
 
     def _has_permission(self, project, minimum_role):
         from rdmo.projects.models import Membership
