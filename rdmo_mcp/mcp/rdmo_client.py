@@ -22,7 +22,7 @@ class RDMOClient:
         self.user = self._resolve_user(user_identifier)
 
     def create_project(self, name, catalog_slug, description=""):
-        from rdmo.catalogs.models import Catalog
+        from rdmo.questions.models.catalog import Catalog
         from rdmo.projects.models import Membership, Project
 
         catalog = Catalog.objects.get(slug=catalog_slug)
@@ -41,9 +41,10 @@ class RDMOClient:
 
     def add_project_member(self, project_id, email):
         from rdmo.projects.models import Membership, Project
+        from django.contrib.auth import get_user_model
 
         project = Project.objects.get(pk=project_id)
-        member = User.objects.get(email=email)
+        member = get_user_model().objects.get(email=email)
 
         if not self._has_permission(project, "manager"):
             raise PermissionError("You do not have permission to add members.")
@@ -56,8 +57,8 @@ class RDMOClient:
         return {"status": "success", "email": email}
 
     def update_catalog_answer(self, project_id, question_id, value):
-        from rdmo.projects.models import Membership, Project
-        from rdmo.questions.models import Answer, Question
+        from rdmo.projects.models import Membership, Project, Value
+        from rdmo.questions.models import Question
 
         project = Project.objects.get(pk=project_id)
         question = Question.objects.get(pk=question_id)
@@ -65,7 +66,7 @@ class RDMOClient:
         if not self._has_permission(project, "editor"):
             raise PermissionError("You do not have permission to edit this project.")
 
-        answer, _ = Answer.objects.get_or_create(project=project, question=question)
+        answer, _ = Value.objects.get_or_create(project=project, question=question)
         answer.value = value
         answer.save()
         return answer

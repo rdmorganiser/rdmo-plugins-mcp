@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from mcp import ClientSession
 from mcp.client.sse import sse_client
-from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.streamable_http import streamable_http_client
 from rdmo_chatbot.chatbot.adapter import LangChainAdapter, config, messages_to_dicts, store
 
 
@@ -239,7 +239,7 @@ class _MCPStreamableHTTPSession:
 
     async def __aenter__(self):
         logger.info("Opening MCP streamable-http session to %s", self.url)
-        self._stream_context = streamablehttp_client(self.url)
+        self._stream_context = streamable_http_client(self.url)
         read_stream, write_stream, _ = await self._stream_context.__aenter__()
         self._session = ClientSession(read_stream, write_stream)
         await self._session.__aenter__()
